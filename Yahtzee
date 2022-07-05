@@ -1,0 +1,882 @@
+.data
+	#array for initial dice
+	Dice: .space 20
+	#array for kept dice
+	keep: .space 20
+	#array for score
+	score: .space 48
+	scoreRecorder: .space 48
+	Introduction: .asciiz "******************************************************************************\nJake Kraemer\n824475048\nYahtzee MiPsgame\n*******************************************************************************\nWelcome to Yahtzee! The object of your game to to fill out your scorecard. You\nhave 5 dice that are eight sided. At the begining of each round you will roll \nyour dice. You can then pick dice you want to keep by typing the labeled dice \nD1, D2, D3, D4, D5. You are looking for your dice to match one of the following\ncombinations:\n[0]Ones: Any amount of ones on your dice. One point for every one.\n[1]Twos: Any amount of twos on your dice. Two points for each two.\n[2]Threes: Any amount of threes on your dice. Three points for every three.\n[3]Fours: Any amount of fours on your dice. Four points for every four.\n[4]Fives: Any amount of fives on your dice. Five points for every five.\n[5]Sixes: Any amount of sixes on your dice. Six points for every six.\n[6}Sevens: Any amount of sevens on your dice. Seven points for every seven.\n[7]Eights: Any amount of eights on your dice. Eight points for every eight\n[8]Three of a kind: Thriple of the number on your dice. The sum of all of the \nnumbers on your dice is your points.\n[9]Four of a kind: Four of the same number on your dice. The sum of all of the \nnumbers on your dice is your points.\n[10]Chance: Chance sums up the numbers on your dice.\n[11]Evens: The sum of all evens on your dice.\nYou can choose the same category more than once but it means you give up points \nin another category.At the end of the game your score will be given to you. Make \nsure you double check to make surethe number you enter matches the label by the combination in the menu."
+	PromptName: .asciiz "\nWho is playing: "
+	name: .space 64
+	welcome: .asciiz "Welcome "
+	PromptOptions: .asciiz "Please type 1 to play and 0 to quit: "
+	PromptRollDice: .asciiz "Press ENTER to roll dice\n"
+	turn1: .asciiz "\nYour first roll is\n"
+	space1: .asciiz " "
+	space2: .asciiz "   "
+	dicelabel: .asciiz "\n[1] [2] [3] [4] [5]"
+	keepdice: .asciiz "\nPress 1 to play now or 0 to keep rolling dice\n"
+	PromptPlay: .asciiz "\nHow would you like your dice to be scored. Type the number by the option in the menu: "
+	onesScore: .asciiz "\nYour score for ones is: "
+	promptKeep: .asciiz "\nHow many dice do you want to keep?"
+	promptKeep2: .asciiz "\nWhat dice would you like to keep?"
+	turn2: .asciiz "\nTurn 2\n"
+	turn3: .asciiz "\nTurn 3\n"
+	scorePrompt: .asciiz "Great game! your final score was : "
+	
+	
+.text
+	main:
+	addi $s4, $zero, 0
+
+	li $v0, 4			#prints introduction
+	la $a0, Introduction
+	syscall
+	
+	li $v0, 4			#prompts user to enter name
+	la $a0, PromptName
+	syscall
+	
+	li $v0, 8			#stores user input of string name
+	la $a0, name
+	li $a1, 64
+	move $t0, $a0
+	syscall
+	
+	li $v0, 4			#prints welcome
+	la $a0, welcome
+	syscall
+	
+	la $a0, name			#Prints users name
+	move $a0, $t0
+	li $v0, 4
+	syscall
+	
+	restart:
+
+	la $v0, 4			#Prints prompt for user to input menu options
+	la $a0, PromptOptions
+	syscall
+
+	li $v0, 5			#reads user integer input
+	syscall
+	
+	add $t0, $zero, $v0		#t0 = menu options
+	
+	addi $t1, $zero, 1		#int x = 1, int y = 0
+	addi $t2, $zero, 0
+	
+	bne $t0, $t1, Else1		#if(t0 == x)
+	j After				#{j After}
+	Else1:				#elseif(t0 == y)
+	 bne $t0, $t2, Else2		#{ li $v0, 10 }
+	 li $v0, 10			#{ j restart }
+	 syscall
+	Else2: 
+	j restart
+	After:
+	
+	addi $t7, $zero, 0		#int index = $t7 = 0
+	whilemain:
+	bge $t7, 12, exitmainloop
+	
+	
+	la $v0, 4			#turn 1
+	la $a0, turn1
+	syscall
+	
+	
+	jal RollDice			#rolls first dice and prints label for each die
+	jal clearArray
+	jal PrintDice
+	jal promptPlayorStay
+	
+	move $s1, $v0			#moves play or stay variable to $s1
+	
+	addi $t1, $zero, 1		#int x = 1, int y = 0
+	addi $t2, $zero, 0
+
+	beq $s1, $t1, playit		#if($s1 == 1)
+	j nexti				#	play()
+	playit:				#if($s1 == 0)
+	jal play			#	keep()
+	nexti:
+	
+	beq $s1, $t2, keepit
+	j nextj
+	keepit: 
+	jal keep1
+	nextj:
+	
+	la $v0, 4			#turn 2
+	la $a0, turn2
+	syscall
+	
+	jal RollDice			#rolls, replaces and prints turn2 dice
+	jal replaceArray
+	jal clearArray
+	jal PrintDice
+	jal promptPlayorStay
+	
+	move $s1, $v0			#moves play or stay variable to $s1
+	
+	addi $t1, $zero, 1		#int x = 1, int y = 0
+	addi $t2, $zero, 0
+	
+	beq $s1, $t1, playit2		#if($s1 == 1)
+	j nextx				#	play()
+	playit2:			#if($s1 == 0)
+	jal play			#	keep()
+	nextx:
+	
+	beq $s1, $t2, keepit2
+	j nexty
+	keepit2: 
+	jal keep1
+	nexty:
+	
+	la $v0, 4			#turn3
+	la $a0, turn3
+	syscall
+	
+	jal RollDice			#rolls, replaces and prints turn3 dice	
+	jal replaceArray
+	jal clearArray
+	jal PrintDice
+	jal play			#user has no option but to play after this turn
+	
+	donewithmove:
+	
+	addi $t7, $t7, 1
+	j whilemain
+	
+	exitmainloop:
+	
+	jal printScore
+	
+	
+	li $v0, 10			#terminates program
+	syscall
+	
+	#function returns int in the range of 1-8	
+	RollDice:	
+	
+		addi $sp, $sp, -4	#saves ra in stack
+		sw $ra, 0($sp)
+		
+		beqz $s4, branchroll
+		j afterroll		#if $s4 == 0
+		branchroll:
+		addi $s5, $zero, 0xf00f5aa5
+		afterroll:
+		
+		addi $t0, $zero, 0		#$t0 = 0
+	
+		LFSRloop:			#while($t0 < 20)
+		bge $t0, 20, exitloopLFSR		
+		
+		jal lfsr
+		
+		move $s2, $v1			#moves returned int to $s2
+		
+		sw $s2, Dice($t0)		#storea $s2 in doce array
+		
+		addi $t0, $t0, 4		#t0 += 4
+		j LFSRloop
+		exitloopLFSR:
+		
+		
+		lw $ra, 0($sp)			#restores original register to return to
+		addi $sp, $sp, 4
+	jr $ra
+	
+	#LFSR function with taps:
+	#x^32+x^30+x^26+x^25
+	#Range: 1-8
+	lfsr: 
+		addi $sp, $sp, -4	#saves ra in stack
+		sw $ra, 0($sp)
+		
+		move $t1, $s5		#LFSR = $t1
+		
+		srl $t3, $t1, 0		#$t3 = (LFSR >> 0)
+		and $t3, $t3, 1		#$t4 = (LFSR >> 2)		
+					#$t5 = (LFSR >> 6)
+		srl $t4, $t1, 2		#$t6 = (LFSR >> 7)
+		and $t4, $t4, 1
+		
+		
+		srl $t5, $t1, 6
+		and $t5, $t5, 1
+		
+		
+		srl $t6, $t1, 7
+		and $t6, $t6, 1
+		
+		
+		xor $t3, $t3, $t4   	#xors bit stored in $t3 - $t6
+		xor $t3, $t3, $t5	#stores result in $t3
+		xor $t3, $t3, $t6
+		
+		sll $t1, $t1, 1   	#shifts to left initial seed one bit
+		
+		or $v1, $t1, $t3	#ors shifted initial seed and puts $t3 in MSB
+		
+		addi $s4, $s4, 1
+		move $s5, $v1		#stores new 32 bit sequence in seeds array
+		
+		li $t1, 0x00000007	#loads mask 0000 0000 0000 0000 0000 0000 0000 0111 with LFSR	
+		and $v1, $v1, $t1	#This mask isolates the three bits needed for the number range 0-7			
+		
+		addi $v1, $v1, 1	#adds 1 to satisfy range 1-8
+		
+		lw $ra, 0($sp)		#restores original register to return to
+		addi $sp, $sp, 4
+		
+	jr $ra
+		
+	PrintDice:
+		
+		la $s0, Dice		#saves base address of dice to $s0
+		addi $t0, $zero, 0
+		
+		
+		la $v0, 4		#prints single space space
+		la $a0, space1
+		syscall
+		
+		while:
+		bge $t0, 20, exit2	#while($t0 < 20)
+		lw $t1, Dice($t0)
+		
+		li $v0, 1		#prints int from array
+		move $a0, $t1
+		syscall
+		
+		la $v0, 4		#prints space inbetween dice
+		la $a0, space2
+		syscall
+		
+		addi $t0, $t0, 4	#incriments index $t0
+		
+		j while
+		
+		exit2:
+		la $v0, 4		#prints dice options
+		la $a0, dicelabel
+		syscall
+		
+	jr $ra
+		
+		
+	play:
+	
+	addi $sp, $sp, -4	#stores ra in stack
+	sw $ra, 0($sp)
+	
+	restart03:
+	
+	la $v0, 4		#asks user which board they would like to play 1-12 based on menu options
+	la $a0, PromptPlay
+	syscall
+	
+	li $v0, 5		#reads user int
+	syscall
+	
+	move $s1, $v0		#stores user input 
+	
+	addi $s2, $zero, 0	#int sum = 0
+	
+	bne $s1, 0, twos		#if(s1 == 0)
+	jal ones1			#	ones()
+	j finish			#else if
+	twos: bne $s1, 1, threes	#	twos()
+		jal twos1
+		j finish
+	threes:bne $s1, 2, fours
+		jal threes1
+		j finish
+	fours:bne $s1, 3, fives
+		jal fours1
+		j finish
+	fives:bne $s1, 4, sixes
+		jal fives1
+		j finish
+	sixes:bne $s1, 5, sevens
+		jal sixes1
+		j finish
+	sevens:bne $s1, 6, eights
+		jal sevens1
+		j finish
+	eights:bne $s1, 7, threeOfAKind
+		jal eights1
+		j finish
+	threeOfAKind:bne $s1, 8, fourOfAKind
+		jal threeOfAKind1
+		j finish
+	fourOfAKind:bne $s1, 9, chance
+		jal fourOfAKind1
+		j finish
+	chance:bne $s1, 10, evens
+		jal chance1
+		j finish
+	evens:bne $s1, 11, notValid
+		jal evens1
+		j finish
+	notValid: j restart03
+		
+	finish:
+	
+	j donewithmove
+	
+	lw $ra, 0($sp)		#returns ra to original value
+	addi $sp, $sp, 4
+	
+	jr $ra
+		
+	ones1:
+		mul $s1, $s1, 4			#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0		#int index = $t0 = 0
+		
+		addi $t2, $zero, 0		#int score = $t2 = 0
+		
+		while3:				#while(index < 20)
+		beq $t0, 20, exit01
+		
+		lw $t1, Dice($t0)		#if(dice[index} == 1)
+		bne $t1, 1, exit02
+		
+		addi $t2, $t2, 1		#score += 1
+		
+		exit02:
+		
+		addi $t0, $t0, 4
+		
+		j while3
+		
+		exit01:
+		
+		sw $t2, score($s1)
+		
+	jr $ra
+	
+	twos1:
+		
+		mul $s1, $s1, 4 		#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0		#int index = $t0 = 0
+		
+		addi $t2, $zero, 0		#int score = $t2 = 0
+		
+		while4:				#while(index < 20)
+		bge $t0, 20, exitthis
+		
+		lw $t1, Dice($t0)		#if(dice[index] == 2)
+		bne $t1, 2, exitnow
+		
+		addi $t2, $t2, 2		#score += 2
+		exitnow:
+		
+		addi $t0, $t0, 4
+		
+		j while4
+		exitthis:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	threes1:
+		#sets $s1 to spot in score array to place score
+		mul $s1, $s1, 4 			#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t2, $zero, 0			#int score = $t2 = 0
+		
+		while5:					#while(index < 20)
+		bge $t0, 20, exitthis1
+		
+		lw $t1, Dice($t0)			#if(dice[index] == 3)
+		bne $t1, 3, exitnow1
+		
+		addi $t2, $t2, 3			#score += 3
+		exitnow1:
+		
+		addi $t0, $t0, 4
+		
+		j while5
+		exitthis1:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	fours1:
+		
+		mul $s1, $s1, 4 			#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t2, $zero, 0			#int score = $t2 = 0
+		
+		while6:					#while(index < 20)
+		bge $t0, 20, exitthis01
+		
+		lw $t1, Dice($t0)			#if(dice[index] == 4)
+		bne $t1, 4, exitnow01
+		
+		addi $t2, $t2, 4			#score += 4
+		exitnow01:
+		
+		addi $t0, $t0, 4
+		
+		j while6
+		exitthis01:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	fives1:
+		#sets $s1 to spot in score array to place score
+		mul $s1, $s1, 4 			#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t2, $zero, 0			#int score = $t2 = 0
+		
+		while7:					#while(index < 20)
+		bge $t0, 20, exitthis001
+		
+		lw $t1, Dice($t0)			#if(dice[index] == 5)
+		bne $t1, 5, exitnow001
+		
+		addi $t2, $t2, 5			#score += 5
+		exitnow001:
+		
+		addi $t0, $t0, 4
+		
+		j while7
+		exitthis001:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	sixes1:
+		
+		mul $s1, $s1, 4 			#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t2, $zero, 0			#int score = $t2 = 0
+		
+		while8:					#while(index < 20)
+		bge $t0, 20, exitthis10
+		
+		lw $t1, Dice($t0)			#if(dice[index] == 6)
+		bne $t1, 6, exitnow10
+		
+		addi $t2, $t2, 6			#score += 6
+		exitnow10:
+		
+		addi $t0, $t0, 4
+		
+		j while8
+		exitthis10:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	sevens1:
+		
+		mul $s1, $s1, 4 			#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t2, $zero, 0			#int score = $t2 = 0
+		
+		while9:					#while(index < 20)
+		bge $t0, 20, exitthis100
+		
+		lw $t1, Dice($t0)			#if(dice[index] == 7)
+		bne $t1, 7, exitnow100
+		
+		addi $t2, $t2, 7			#score += 7
+		exitnow100:
+		
+		addi $t0, $t0, 4
+		
+		j while9
+		exitthis100:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	eights1:
+		#sets $s1 to spot in score array to place score
+		mul $s1, $s1, 4 			#sets $s1 to spot in score array to place score
+		
+		#int index = $t0 = 0
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t2, $zero, 0			#int score = $t2 = 0		
+		
+		while10:				#while(index < 20)
+		bge $t0, 20, exitthis11
+		
+		lw $t1, Dice($t0)			#if(dice[index] == 8)
+		bne $t1, 8, exitnow11
+		
+		addi $t2, $t2, 8			#score += 8
+		exitnow11:
+		
+		addi $t0, $t0, 4
+		
+		j while10
+		exitthis11:
+		
+		sw $t2, score($s1)
+	jr $ra
+	
+	threeOfAKind1:
+		
+		addi $sp, $sp, -4			#saves register to stack
+		sw $ra, 0($sp)
+	
+		jal sortArray
+		
+		lw $ra, 0($sp)				#returns register to play
+		addi $sp, $sp, 4
+		
+		mul $s1, $s1, 4				#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t1, $zero, 0			#int score = $t1 = 0
+		
+		addi $t6, $zero, 0			#int threeOfAKind = $t6 = 0
+		
+		while11:				#while(index < 12)
+		bge $t0, 12, exitloop
+		
+		lw $t2, Dice($t0)			#loads next 3 dice after index
+		addi $t5, $t0, 4
+		lw $t3, Dice($t5)
+		addi $t5, $t5, 4
+		lw $t4, Dice($t5)
+		
+		bne $t2, $t3, exit111			#if($t2 == $t3 && $t2 == $t4)
+		bne $t2, $t4, exit111
+		
+		addi $t6, $zero, 1			#sets threeOfAKind = 1 and stores index in diceIndex
+		move $t7, $t0
+		exit111:
+		addi $t0, $t0, 4
+		j while11
+		
+		exitloop:
+		
+		bne $t6, 1, nothing			#if(threeOfaKind = 1)
+		
+		lw $t2, Dice($t7)			#score = dice($t7) * 3
+		mul $t1, $t2, 3
+		j afternow
+		nothing:
+		addi $t1, $zero, 0
+		afternow:
+		
+		sw $t1, score($s1)
+	jr $ra
+	
+	fourOfAKind1:
+	
+		addi $sp, $sp, -4			#saves register to stack
+		sw $ra, 0($sp)
+	
+		jal sortArray
+		
+		lw $ra, 0($sp)				#returns register to play
+		addi $sp, $sp, 4
+		
+		mul $s1, $s1, 4				#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#int index = $t0 = 0
+		
+		addi $t1, $zero, 0			#int score = $t1 = 0
+		
+		addi $t6, $zero, 0			#int fourOfaKind = $t6 = 0
+		
+		while111:				#while(index < 8)
+		bge $t0, 8, exitloopa
+		
+		lw $t2, Dice($t0)			#loads next 4 dice after index
+		addi $t5, $t0, 4
+		lw $t3, Dice($t5)
+		addi $t5, $t5, 4
+		lw $t4, Dice($t5)
+		addi $t5, $t5, 4			
+		lw $t5, Dice($t5)
+		
+		bne $t2, $t3, exit110			#if($t2 == $t3 && $t2 == $t4)
+		bne $t2, $t4, exit110
+		bne $t2, $t5, exit110
+		
+		addi $t6, $zero, 1			#sets fourofakind = 1 and stores index in diceIndex
+		move $t7, $t0
+		exit110:
+		addi $t0, $t0, 4
+		j while111
+		
+		exitloopa:
+		
+		bne $t6, 1, nothinga			#if(fourOfaKind = 1)
+		
+		lw $t2, Dice($t7)			#score = dice($t7) * 4
+		mul $t1, $t2, 4
+		j afternowa
+		nothinga:
+		addi $t1, $zero, 0
+		afternowa:
+		
+		sw $t1, score($s1)
+		
+	jr $ra
+	
+	chance1:
+		
+		mul $s1, $s1, 4				#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#index $t0 = 0
+		
+		addi $t2, $zero, 0			#int sum $t2 = 0
+		
+		whilenow:
+		bge $t0, 20, exitplease
+		
+		lw $t1, Dice($t0)
+		
+		add $t2, $t2, $t1
+		
+		addi $t0, $t0, 4
+		
+		j whilenow
+		
+		exitplease:
+		
+		sw $t2, score($s1)
+		
+	jr $ra
+	
+	evens1:
+	
+		mul $s1, $s1, 4				#sets $s1 to spot in score array to place score
+		
+		addi $t0, $zero, 0			#index $t0 = 0
+		
+		addi $t2, $zero, 0			#int sum $t2 = 0
+		
+		whileloopevens:				#while(index < 20)
+		bge $t0, 20, exitevens
+		
+		lw $t1, Dice($t0)
+		div $t3, $t1, 2
+		
+		mfhi $t3
+		
+		#if($t3 == 0)
+		bne $t3, 0, noteven
+		add $t2, $t1, $t2
+		
+		noteven:
+		
+		addi $t0, $t0, 4
+		j whileloopevens
+		
+		exitevens:
+		
+		sw $t2, score($s1)
+	
+	jr $ra
+	
+	
+	promptPlayorStay:
+
+		move $s0, $ra				#saves orginal register to $s0
+	
+		la $v0, 4				#prints option for player to play or roll again
+		la $a0, keepdice
+		syscall
+	
+		li $v0, 5				#reads user input for int
+		syscall
+	
+		add $t0, $zero, $v0			#t0 = menu options
+	
+		move $v0, $t0				#moves return variable $v0
+	
+		move $ra, $s0
+	jr $ra
+	
+	keep1:
+	
+		la $v0, 4				#prints promptKeep
+		la $a0, promptKeep
+		syscall
+	
+		li $v0, 5				#reads user int
+		syscall
+	
+		move $t4, $v0				#stores int in $t4
+	
+		addi $t0, $zero, 0			#$t0 = index = 0
+		lop:
+	
+		bge $t0, $t4, endWhile			#while(index < $t4)
+	
+		la $v0, 4				#prints prompt asking for dice
+		la $a0, promptKeep2
+		syscall
+	
+		li $v0, 5				#reads user int
+		syscall
+	
+		move $t5, $v0				#moves user int to dice number at $t5
+	
+		mul $t5, $t5, 4				#loads the dice stored at location to $6
+		sub $t5, $t5, 4
+		lw $t6, Dice($t5)
+	
+		sw $t6, keep($t5)			#stores dice in keep array in same memory location
+	
+		addi $t0, $t0, 1			#incriments index
+	
+		j lop
+		endWhile:
+	jr $ra
+	
+	replaceArray:
+	
+		addi $t0, $zero, 0			#int index = 0
+	
+		looop:					#while(index < 5)
+		bge $t0, 5, out
+	
+		mul $t1, $t0, 4
+		lw $t2, keep($t1)
+	
+	
+		bne $t2, 0, replace			#if(keep[index] != 0)
+		j after2				#	dice[index] = keep[index]
+		replace: 
+	
+		sw $t2, Dice($t1)			#replaces dice with kept dice
+		after2:
+	
+		addi $t0, $t0, 1
+		j looop
+		out:
+	
+	jr $ra
+	
+	sortArray:
+	
+	addi $t1, $zero, 0				#int i = 0
+	
+	addi $t2, $zero, 4				#int j = 4
+	
+	addi $t3, $zero, 0				#int min_index = 0
+	
+	
+	forloopout:					#for(i; i < 16; i++)
+	bge $t1, 20, exit_loop1
+	
+	move $t3, $t1					#min_index = i
+	
+	forloopin:
+	bge $t2, 20, exit_loop2
+	
+	lw $t4, Dice($t2)				#int x = dice[j}
+	
+	lw $t5, Dice($t3)				#int y = dice[min_index]
+	
+	bge $t4, $t5, exit_this1			#if(x < y)
+	
+	move $t3, $t2					#min_index = j
+	exit_this1:
+	
+	addi $t6, $zero, 0				#int temp = 0
+	
+	
+	move $t6, $t5					#temp = dice[min_index]
+	
+	lw $t7, Dice($t1)				#dice[min_index] = dice[i]
+	move $t4, $t7
+	sw $t4, Dice($t3)
+	
+	move $t7, $t6					#dice[i] = temp
+	sw $t7, Dice($t1)
+	
+	addi $t2, $t2, 4
+	j forloopin
+	exit_loop2:
+	
+	addi $t1, $t1, 4
+	j forloopout
+	exit_loop1:
+		
+	
+	jr $ra
+	
+	
+	printScore:
+		
+	addi $t0, $zero, 0				#index $t0 == 0
+	
+	
+	addi $t1, $zero, 0				#int sum = 0
+	
+	whilescore:
+	bge $t0, 48, exitscore
+	
+	lw $t2, score($t0)
+	add $t1, $t2, $t1
+	
+	addi $t0, $t0, 4
+	j whilescore
+	
+	exitscore:
+	
+	li $v0, 4
+	la $a0, scorePrompt
+	syscall
+	
+	li $v0, 1
+	move $a0, $t1
+	syscall
+	
+	jr $ra
+	
+	clearArray:	#clearArray clears the values in the keep array
+		
+		addi $t0, $zero, 0	#index $t0 = 0
+		
+		addi $t1, $zero, 0	#int clear = 0
+		
+		whileClear:		#while(index < 20)
+		bge $t0, 20, exitClear
+		
+		sw $t1, keep($t0)	#keep[index] = 0
+		
+		addi $t0, $t0, 4	#index = index + 4
+		
+		j whileClear
+		
+		exitClear:
+	
+	jr $ra
+	
+	
+	
+	
+	
+	
