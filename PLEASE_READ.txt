@@ -26,7 +26,10 @@ numbers on your dice is your points.
 You can choose the same category more than once but it means you give up points 
 in another category. At the end of the game your score will be given to you. 
 Make  sure you double check to make sure the number you enter matches the label 
-by the combination in the menu.
+by the combination in the menu. My function uses a linear-feedback shift register
+(otherwise know as LFSR) to generate a random numner. For a quick introduction to
+LFSR's and it's usage please visit:
+https://en.wikipedia.org/wiki/Linear-feedback_shift_register
 
 Have fun!
 For any questions please reach out to me at jakekraemer@live.com
